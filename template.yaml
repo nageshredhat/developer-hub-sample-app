@@ -1,0 +1,78 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: node-app-template
+  title: Node.js Application
+  description: Create a new Node.js application
+spec:
+  owner: backstage/techdocs-core
+  type: service
+  parameters:
+    - title: Application Name
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the application
+    - title: Description
+      required:
+        - description
+      properties:
+        description:
+          type: string
+          description: Description of the application
+  steps:
+    - id: create-dir
+      name: Create application directory
+      action: createDirectory
+      input:
+        path: ${{ values.name }}
+    - id: create-package-json
+      name: Create package.json
+      action: createFile
+      input:
+        path: ${{ values.name }}/package.json
+        content: |-
+          {
+            "name": "${{ values.name }}",
+            "version": "1.0.0",
+            "description": "${{ values.description }}",
+            "main": "index.js",
+            "scripts": {
+              "test": "echo \"Error: no test specified\" && exit 1"
+            },
+            "keywords": [],
+            "author": "",
+            "license": "ISC"
+          }
+    - id: create-index-js
+      name: Create index.js
+      action: createFile
+      input:
+        path: ${{ values.name }}/index.js
+        content: |-
+          console.log("Hello, world!");
+    - id: create-readme
+      name: Create README.md
+      action: createFile
+      input:
+        path: ${{ values.name }}/README.md
+        content: |-
+          # ${{ values.name }}
+      - id: create-catalog-info
+        name: Create catalog-info.yaml
+        action: createFile
+        input:
+          path: ${{ values.name }}/catalog-info.yaml
+          content: |-
+            apiVersion: backstage.io/v1alpha1
+            kind: Component
+            metadata:
+              name: ${{ values.name }}
+              annotations:
+                backstage.io/techdocs-ref: dir:.
+            spec:
+              type: service
+              lifecycle: experimental
+              owner: ${{ values.owner }}
