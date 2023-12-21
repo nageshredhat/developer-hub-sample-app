@@ -2,13 +2,13 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: node-app-template
-  title: Node.js Application
+  title: Node.js-Application
   description: Create a new Node.js application
 spec:
   owner: backstage/techdocs-core
   type: service
   parameters:
-    - title: Application Name
+    - title: Application-Name
       required:
         - name
       properties:
@@ -24,12 +24,12 @@ spec:
           description: Description of the application
   steps:
     - id: create-dir
-      name: Create application directory
+      name: Create-application-directory
       action: createDirectory
       input:
         path: ${{ values.name }}
     - id: create-package-json
-      name: Create package.json
+      name: Create-package.json
       action: createFile
       input:
         path: ${{ values.name }}/package.json
@@ -47,21 +47,21 @@ spec:
             "license": "ISC"
           }
     - id: create-index-js
-      name: Create index.js
+      name: Create-index.js
       action: createFile
       input:
         path: ${{ values.name }}/index.js
         content: |-
           console.log("Hello, world!");
     - id: create-readme
-      name: Create README.md
+      name: Create-README.md
       action: createFile
       input:
         path: ${{ values.name }}/README.md
         content: |-
           # ${{ values.name }}
       - id: create-catalog-info
-        name: Create catalog-info.yaml
+        name: Create-catalog-info.yaml
         action: createFile
         input:
           path: ${{ values.name }}/catalog-info.yaml
