@@ -5,7 +5,7 @@ metadata:
   title: Node.js-Application
   description: Create a new Node.js application
 spec:
-  owner: backstage/techdocs-core
+  owner: nagesh
   type: service
   parameters:
     - title: Application-Name
