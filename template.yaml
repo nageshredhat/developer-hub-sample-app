@@ -1,78 +1,261 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: node-app-template
-  title: Node.js-Application
-  description: Create a new Node.js application
+  name: wind-turbine-template
+  title: Java Quarkus Wind Turbine Game Template 
+  description: creates the quarkus + quinoa powered Wind Turbine Game structure
+  tags:
+    - node
+    - tekton
+    - sandbox
+    - workshop
 spec:
-  owner: nagesh
+  owner: rhdeveloper-workshop-authors
   type: service
+
   parameters:
-    - title: Application-Name
+    - title: Provide information about the GitHub location
       required:
-        - name
+        - githubOrg
       properties:
-        name:
+        githubOrg:
+          title: GitHub Organization
           type: string
-          description: Name of the application
-    - title: Description
-      required:
-        - description
-      properties:
+          default: WindTurbineInc
         description:
+          title: Description
           type: string
-          description: Description of the application
+          description: Help others understand what this component is for
+    - title: Provide information about the new component
+      required:
+        - cluster_id
+        - namespace
+        - owner
+      properties:
+        cluster_id:
+          title: Cluster Id
+          type: string
+          description: Id of the cluster
+          default: .apps.wearedevs.rl97.p1.openshiftapps.com
+        namespace: 
+          title: Namespace
+          type: string
+          description: Namespace
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the component
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: [User]
+    - title: Provide Build Information
+      required:
+        - image_host
+        - image_tag
+      properties:
+        image_host:
+          title: Image Host
+          type: string
+          description: Host for storing image (defaults to openshift internal)
+          default: image-registry.openshift-image-registry.svc:5000
+        image_tag:
+          title: Image Tag
+          default: latest
+          type: string
+          description: Image tag to use for storing in the internal registry
   steps:
-    - id: create-dir
-      name: Create-application-directory
-      action: createDirectory
+    - id: templateSource
+      name: Generating the source code component
+      action: fetch:template
       input:
-        path: ${{ values.name }}
-    - id: create-package-json
-      name: Create-package.json
-      action: createFile
+        url: ./skeleton
+        targetPath: ./source
+        values:
+          githubOrg: ${{parameters.githubOrg}}
+          repoName: ${{parameters.namespace}}-wind-turbine
+          owner: ${{parameters.owner}}
+          cluster_id: ${{parameters.cluster_id}}
+          namespace: ${{parameters.namespace}}
+          component_id: ${{parameters.namespace}}-wind-turbine-app
+    - id: publishSource
+      name: Publishing to Source Code Repository
+      action: publish:github
       input:
-        path: ${{ values.name }}/package.json
-        content: |-
-          {
-            "name": "${{ values.name }}",
-            "version": "1.0.0",
-            "description": "${{ values.description }}",
-            "main": "index.js",
-            "scripts": {
-              "test": "echo \"Error: no test specified\" && exit 1"
-            },
-            "keywords": [],
-            "author": "",
-            "license": "ISC"
-          }
-    - id: create-index-js
-      name: Create-index.js
-      action: createFile
+        sourcePath: ./source
+        allowedHosts:
+          - github.com
+        description: ${{parameters.description}}
+        repoUrl: github.com?owner=${{parameters.githubOrg}}&repo=${{parameters.namespace}}-wind-turbine
+        defaultBranch: main
+        protectDefaultBranch: false
+        repoVisibility: public    
+    - id: registerSource
+      name: Registering the Source Code Component
+      action: catalog:register
       input:
-        path: ${{ values.name }}/index.js
-        content: |-
-          console.log("Hello, world!");
-    - id: create-readme
-      name: Create-README.md
-      action: createFile
-      input:
-        path: ${{ values.name }}/README.md
-        content: |-
-          # ${{ values.name }}
-    - id: create-catalog-info
-      name: Create-catalog-info.yaml
-      action: createFile
-      input:
-        path: ${{ values.name }}/catalog-info.yaml
-        content: |-
-          apiVersion: backstage.io/v1alpha1
-          kind: Component
-          metadata:
-            name: ${{ values.name }}
-            annotations:
-              backstage.io/techdocs-ref: dir:.
-          spec:
-            type: service
-            lifecycle: experimental
-            owner: ${{ values.owner }}
+        repoContentsUrl: ${{steps.publishSource.output.repoContentsUrl}}
+        catalogInfoPath: /catalog-info.yaml
+    # - id: templateGitops
+    #   name: Generating the deployment resources and artefacts
+    #   action: fetch:template
+    #   input:
+    #     url: ./manifests
+    #     copyWithoutTemplating: []
+    #     values:
+    #       component_id: ${{parameters.namespace}}-wind-turbine-app
+    #       description: ${{parameters.description}}
+    #       destination: https://github.com/${{parameters.githubOrg}}/${{parameters.namespace}}-wind-turbine-gitops
+    #       source_repository: https://github.com/${{parameters.githubOrg}}/${{parameters.namespace}}-wind-turbine
+    #       repository_name: ${{parameters.namespace}}-wind-turbine
+    #       git_owner: ${{parameters.githubOrg}}
+    #       cluster: ${{parameters.cluster_id}}
+    #       namespace: ${{parameters.namespace}}
+    #       image_host: ${{parameters.image_host}}
+    #       image_name: ${{parameters.namespace}}/wind-turbine-app
+    #       image_tag: ${{parameters.image_tag}}
+    #     targetPath: ./tenant-gitops
+    # - id: publishGitops
+    #   name: Publishing to Deployment Resource Repository
+    #   action: publish:github
+    #   input:
+    #     repoUrl: github.com?owner=${{parameters.githubOrg}}&repo=${{parameters.namespace}}-wind-turbine-gitops
+    #     title: gitops resources for ${{parameters.namespace}}-wind-turbine-app
+    #     description: gitops resources for ${{parameters.namespace}}-wind-turbine-app
+    #     sourcePath: ./tenant-gitops
+    #     defaultBranch: main
+    #     protectDefaultBranch: false
+    #     repoVisibility: public
+    # - id: createArgoResources
+    #   name: Create ArgoCD Resources
+    #   action: argocd:create-resources
+    #   input:
+    #     appName: ${{parameters.namespace}}-wind-turbine-app-bootstrap
+    #     argoInstance: main
+    #     namespace: janus-argocd
+    #     repoUrl: https://github.com/${{parameters.githubOrg}}/${{parameters.namespace}}-wind-turbine-gitops.git
+    #     path: 'argocd/'
+  output:
+    links:
+      - title: Source Code Repository
+        url: ${{steps.publishSource.output.remoteUrl}}
+      - title: Pipeline status
+        url: https://console-openshift-console${{parameters.cluster_id}}/dev-pipelines/ns/${{parameters.namespace}}/
+      - title: Open Component in catalog
+        icon: catalog
+        entityRef: ${{steps.registerSource.output.entityRef}}
+
+
+# ---
+# apiVersion: scaffolder.backstage.io/v1beta3
+# kind: Template
+# metadata:
+#   name: node-app-template
+#   title: Node.js-Application
+#   description: Create a new Node.js application
+#   spec:
+#   owner: nagesh
+#   type: service
+#   parameters:
+#     - title: Application-Name
+#       required:
+#         - name
+#       properties:
+#         name:
+#           type: string
+#           description: Name of the application
+#     - title: Description
+#       required:
+#         - description
+#       properties:
+#         description:
+#           type: string
+#           description: Description of the application
+#   steps:
+#     - id: create-catalog-info
+#       name: Create-catalog-info.yaml
+#       action: createFile
+#       input:
+#         path: ${{ values.name }}/catalog-info.yaml
+#         content: |-
+#           apiVersion: backstage.io/v1alpha1
+#           kind: Component
+#           metadata:
+#             name: ${{ values.name }}
+#             annotations:
+#               backstage.io/techdocs-ref: dir:.
+#           spec:
+#             type: service
+#             lifecycle: experimental
+#             owner: ${{ values.owner }}
+
+
+# ###############################################
+
+# apiVersion: backstage.io/v1beta2
+# kind: Template
+# # some metadata about the template itself
+# metadata:
+#   name: template-name
+#   title: My template
+#   description: Scaffolds template-name template
+# spec:
+#   owner: group:group-name
+#   type: service
+
+#   # these are the steps which are rendered in the frontend with the form input
+#   parameters:
+#     - title: Fill in some steps
+#       required:
+#         - name
+#       properties:
+#         name:
+#           title: Name
+#           type: string
+#           description: Unique name of the component
+#           ui:autofocus: true
+#           ui:options:
+#             rows: 5
+#     - title: Choose a location
+#       required:
+#         - repoUrl
+#       properties:
+#         repoUrl:
+#           title: Repository Location
+#           type: string
+#           ui:field: RepoUrlPicker
+#           ui:options:
+#             allowedHosts:
+#               - github.com
+
+#   # here's the steps that are executed in series in the scaffolder backend
+#   steps:
+#     - id: fetch-base
+#       name: Fetch Base
+#       action: fetch:template
+#       input:
+#         url: ./template
+#         values:
+#           name: '{{ parameters.name }}'
+
+#     - id: fetch-docs
+#       name: Fetch Docs
+#       action: fetch:plain
+#       input:
+#         targetPath: ./community
+#         url: https://github.com/backstage/community/tree/main/backstage-community-sessions
+
+#     - id: publish
+#       name: Publish
+#       action: publish:github
+#       input:
+#         allowedHosts: ['github.com']
+#         description: 'This is {{ parameters.name }}'
+#         repoUrl: '{{ parameters.repoUrl }}'
+
+#     - id: register
+#       name: Register
+#       action: catalog:register
+#       input:
+#         repoContentsUrl: '{{ steps.publish.output.repoContentsUrl }}'
+#         catalogInfoPath: '/catalog-info.yaml'
