@@ -78,18 +78,18 @@ spec:
           cluster_id: ${{parameters.cluster_id}}
           namespace: ${{parameters.namespace}}
           component_id: ${{parameters.namespace}}-wind-turbine-app
-    - id: publishSource
-      name: Publishing to Source Code Repository
-      action: publish:github
-      input:
-        sourcePath: ./source
-        allowedHosts:
-          - github.com
-        description: ${{parameters.description}}
-        repoUrl: github.com?owner=${{parameters.githubOrg}}&repo=${{parameters.namespace}}-wind-turbine
-        defaultBranch: main
-        protectDefaultBranch: false
-        repoVisibility: public    
+    # - id: publishSource
+    #   name: Publishing to Source Code Repository
+    #   action: publish:github
+    #   input:
+    #     sourcePath: ./source
+    #     allowedHosts:
+    #       - github.com
+    #     description: ${{parameters.description}}
+    #     repoUrl: github.com?owner=${{parameters.githubOrg}}&repo=${{parameters.namespace}}-wind-turbine
+    #     defaultBranch: main
+    #     protectDefaultBranch: false
+    #     repoVisibility: public    
     - id: registerSource
       name: Registering the Source Code Component
       action: catalog:register
